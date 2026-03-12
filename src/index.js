@@ -1,3 +1,6 @@
+/**
+ * Bookmarks extension. Uses window.PrimeVue (button, panel, dialog, inputtext, textarea).
+ */
 import DetailBookmarksCard from './DetailBookmarksCard.vue';
 
 const BOOKMARKS_ICON =
@@ -7,7 +10,7 @@ window.__registerDetailTabExtension({
   id: 'bookmarks',
   label: 'Bookmarks',
   description: 'Save and organize links for this project. Quick access to docs, dashboards, and tools.',
-  version: '1.0.0',
+  version: '1.1.0',
   icon: BOOKMARKS_ICON,
   component: DetailBookmarksCard,
 });

@@ -15,7 +15,7 @@
       <template #header>
         <div class="flex items-center justify-between gap-3 w-full">
           <h3 class="text-sm font-semibold text-rm-text m-0 tracking-tight">Bookmarks</h3>
-          <span v-if="bookmarks.length" class="text-xs text-rm-muted">{{ bookmarks.length }} bookmark{{ bookmarks.length === 1 ? '' : 's' }}</span>
+          <span v-if="bookmarks.length" class="text-xs text-rm-muted">{{ filteredBookmarks.length }} of {{ bookmarks.length }} bookmark{{ bookmarks.length === 1 ? '' : 's' }}</span>
         </div>
       </template>
 
@@ -32,63 +32,85 @@
         </div>
       </div>
 
-      <ul v-else class="bookmarks-ul list-none m-0 p-0">
-        <li
-          v-for="b in sortedBookmarks"
-          :key="b.id"
-          class="bookmark-row flex items-center gap-3 px-4 py-3 min-w-0 border-b border-rm-border last:border-b-0 hover:bg-rm-surface-hover/50"
-        >
-          <div class="min-w-0 flex-1">
-            <a
-              :href="b.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="bookmark-title font-medium text-rm-text hover:text-rm-accent truncate block"
-              @click.prevent="openUrl(b.url)"
-            >
-              {{ b.title || b.url }}
-            </a>
-            <p class="bookmark-url text-xs text-rm-muted truncate m-0 mt-0.5">{{ b.url }}</p>
-            <div v-if="b.folder || (b.tags && b.tags.length)" class="flex flex-wrap gap-1.5 mt-1.5">
-              <span v-if="b.folder" class="px-1.5 py-0.5 rounded text-xs bg-rm-surface-hover text-rm-muted">{{ b.folder }}</span>
-              <span v-for="tag in (b.tags || [])" :key="tag" class="px-1.5 py-0.5 rounded text-xs bg-rm-accent/15 text-rm-accent">{{ tag }}</span>
+      <template v-else>
+        <div v-if="bookmarks.length > 3" class="px-4 py-2 border-b border-rm-border">
+          <InputText
+            v-model="searchQuery"
+            class="text-sm w-full"
+            placeholder="Search by title, URL, folder, or tags..."
+          />
+        </div>
+        <ul class="bookmarks-ul list-none m-0 p-0">
+          <li
+            v-for="b in filteredBookmarks"
+            :key="b.id"
+            class="bookmark-row flex items-center gap-3 px-4 py-3 min-w-0 border-b border-rm-border last:border-b-0 hover:bg-rm-surface-hover/50"
+          >
+            <div class="min-w-0 flex-1">
+              <a
+                :href="b.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="bookmark-title font-medium text-rm-text hover:text-rm-accent truncate block"
+                @click.prevent="openUrl(b.url)"
+              >
+                {{ b.title || b.url }}
+              </a>
+              <p class="bookmark-url text-xs text-rm-muted truncate m-0 mt-0.5">{{ b.url }}</p>
+              <div v-if="b.folder || (b.tags && b.tags.length)" class="flex flex-wrap gap-1.5 mt-1.5">
+                <span v-if="b.folder" class="px-1.5 py-0.5 rounded text-xs bg-rm-surface-hover text-rm-muted">{{ b.folder }}</span>
+                <span v-for="tag in (b.tags || [])" :key="tag" class="px-1.5 py-0.5 rounded text-xs bg-rm-accent/15 text-rm-accent">{{ tag }}</span>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-1 shrink-0">
-            <Button
-              variant="text"
-              size="small"
-              class="p-2 min-w-0"
-              title="Open in browser"
-              aria-label="Open"
-              @click="openUrl(b.url)"
-            >
-              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </Button>
-            <Button
-              variant="text"
-              size="small"
-              class="p-2 min-w-0 text-rm-muted hover:text-rm-text"
-              title="Edit"
-              aria-label="Edit"
-              @click="openEditBookmark(b)"
-            >
-              ✎
-            </Button>
-            <Button
-              variant="text"
-              severity="danger"
-              size="small"
-              class="p-2 min-w-0 opacity-80 hover:opacity-100"
-              title="Delete"
-              aria-label="Delete"
-              @click="confirmDelete(b)"
-            >
-              ×
-            </Button>
-          </div>
-        </li>
-      </ul>
+            <div class="flex items-center gap-1 shrink-0">
+              <Button
+                variant="text"
+                size="small"
+                class="p-2 min-w-0"
+                title="Copy URL"
+                aria-label="Copy URL"
+                @click="copyUrl(b.url)"
+              >
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                class="p-2 min-w-0"
+                title="Open in browser"
+                aria-label="Open"
+                @click="openUrl(b.url)"
+              >
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                class="p-2 min-w-0 text-rm-muted hover:text-rm-text"
+                title="Edit"
+                aria-label="Edit"
+                @click="openEditBookmark(b)"
+              >
+                ✎
+              </Button>
+              <Button
+                variant="text"
+                severity="danger"
+                size="small"
+                class="p-2 min-w-0 opacity-80 hover:opacity-100"
+                title="Delete"
+                aria-label="Delete"
+                @click="confirmDelete(b)"
+              >
+                ×
+              </Button>
+            </div>
+          </li>
+        </ul>
+        <p v-if="filteredBookmarks.length === 0 && searchQuery" class="text-sm text-rm-muted text-center py-6 m-0">
+          No bookmarks match "{{ searchQuery }}".
+        </p>
+      </template>
     </Panel>
 
     <!-- Browser extension: install from here -->
@@ -148,6 +170,7 @@
       @hide="editingBookmark = null"
     >
       <div class="space-y-3">
+        <p v-if="duplicateWarning" class="text-sm text-amber-600 dark:text-amber-400 m-0 -mb-1">{{ duplicateWarning }}</p>
         <label class="block">
           <span class="text-xs font-medium text-rm-muted block mb-1">Title</span>
           <InputText v-model="form.title" class="text-sm w-full" placeholder="e.g. API docs" />
@@ -196,8 +219,10 @@ const api = useApi();
 const PREF_PREFIX = 'ext.bookmarks.';
 
 const bookmarks = ref([]);
+const searchQuery = ref('');
 const bookmarkModalVisible = ref(false);
 const editingBookmark = ref(null);
+const duplicateWarning = ref('');
 const bookmarksReceiverPort = ref(null);
 const bookmarksExtensionPath = ref('');
 const extensionLaunching = ref(false);
@@ -222,6 +247,18 @@ const sortedBookmarks = computed(() => {
     return (a.title || a.url).localeCompare(b.title || b.url);
   });
   return list;
+});
+
+const filteredBookmarks = computed(() => {
+  const q = searchQuery.value?.trim().toLowerCase();
+  if (!q) return sortedBookmarks.value;
+  return sortedBookmarks.value.filter((b) => {
+    const title = (b.title || '').toLowerCase();
+    const url = (b.url || '').toLowerCase();
+    const folder = (b.folder || '').toLowerCase();
+    const tags = (b.tags || []).join(' ').toLowerCase();
+    return title.includes(q) || url.includes(q) || folder.includes(q) || tags.includes(q);
+  });
 });
 
 function getPrefKey() {
@@ -252,14 +289,20 @@ function openUrl(url) {
   if (url && api.openUrl) api.openUrl(url);
 }
 
+function copyUrl(url) {
+  if (url && api.copyToClipboard) api.copyToClipboard(url);
+}
+
 function openAddBookmark() {
   editingBookmark.value = null;
+  duplicateWarning.value = '';
   form.value = { title: '', url: '', folder: '', tagsStr: '', notes: '' };
   bookmarkModalVisible.value = true;
 }
 
 function openEditBookmark(b) {
   editingBookmark.value = b;
+  duplicateWarning.value = '';
   form.value = {
     title: b.title || '',
     url: b.url || '',
@@ -270,9 +313,29 @@ function openEditBookmark(b) {
   bookmarkModalVisible.value = true;
 }
 
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.origin + u.pathname + (u.search || '');
+  } catch {
+    return (url || '').toLowerCase().trim();
+  }
+}
+
+function isDuplicateUrl(url, excludeId) {
+  const norm = normalizeUrl(url);
+  return bookmarks.value.some((b) => b.id !== excludeId && normalizeUrl(b.url) === norm);
+}
+
 function saveBookmark() {
   const url = form.value.url?.trim();
   if (!url) return;
+  const excludeId = editingBookmark.value?.id;
+  if (isDuplicateUrl(url, excludeId)) {
+    duplicateWarning.value = 'This URL is already bookmarked.';
+    return;
+  }
+  duplicateWarning.value = '';
   const tags = form.value.tagsStr
     ? form.value.tagsStr.split(',').map((t) => t.trim()).filter(Boolean)
     : [];
