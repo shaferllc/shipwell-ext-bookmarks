@@ -1,6 +1,6 @@
 {
   "name": "shipwell-ext-bookmarks",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Save and organize links for this project. Quick access to docs, dashboards, and tools.",
   "private": true,
   "type": "module",
